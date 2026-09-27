@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#131f24">
+    <meta name="theme-color" content="#000080">
     <title>B1 Glossar</title>
     <script>
       try {
-        document.documentElement.dataset.theme = localStorage.getItem("b1-glossar-theme") || "dark";
+        document.documentElement.dataset.theme = localStorage.getItem("b1-glossar-theme") || "blue";
       } catch {
-        document.documentElement.dataset.theme = "dark";
+        document.documentElement.dataset.theme = "blue";
       }
     </script>
     <link rel="stylesheet" href="./styles.css">
@@ -64,7 +64,7 @@
                 &times;
               </button>
             </label>
-            <button id="theme-toggle" class="theme-toggle" type="button" title="Dunkelmodus aktivieren" aria-label="Dunkelmodus aktivieren" aria-pressed="false">
+            <button id="theme-toggle" class="theme-toggle" type="button" title="Blauer Modus aktivieren" aria-label="Blauer Modus aktivieren" aria-pressed="false">
               <span class="theme-toggle-icon" aria-hidden="true">&#9790;</span>
             </button>
           </div>
@@ -86,19 +86,6 @@
           <div id="word-list" class="word-list" role="listbox" aria-label="Glossareintraege"></div>
         </section>
       </main>
-
-      <aside class="detail-panel" aria-live="polite">
-        <div id="word-detail" class="word-detail">
-          <p class="empty-detail">Wort auswaehlen</p>
-        </div>
-        <div class="detail-actions">
-          <button id="previous-word" class="icon-button" type="button" title="Vorheriges Wort" aria-label="Vorheriges Wort">&larr;</button>
-          <span id="detail-position">0 / 0</span>
-          <button id="next-word" class="icon-button" type="button" title="Naechstes Wort" aria-label="Naechstes Wort">&rarr;</button>
-        </div>
-      </aside>
-    </div>
-
     <script src="./glossary-model.js"></script>
     <script src="./app.js"></script>
   </body>

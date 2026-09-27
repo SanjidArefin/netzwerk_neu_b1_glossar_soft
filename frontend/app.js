@@ -20,10 +20,6 @@ const elements = {
   listHeader: document.querySelector(".list-header"),
   alphabetJump: document.querySelector("#alphabet-jump"),
   wordList: document.querySelector("#word-list"),
-  wordDetail: document.querySelector("#word-detail"),
-  detailPosition: document.querySelector("#detail-position"),
-  previousWord: document.querySelector("#previous-word"),
-  nextWord: document.querySelector("#next-word"),
   loadStatus: document.querySelector("#load-status"),
   themeToggle: document.querySelector("#theme-toggle"),
   themeColor: document.querySelector('meta[name="theme-color"]'),
@@ -166,30 +162,6 @@ function renderAlphabetJump(visibleEntries) {
   }).join("");
 }
 
-function renderDetail(visibleEntries) {
-  const currentIndex = visibleEntries.findIndex((entry) => entry.id === state.selectedId);
-  const entry = visibleEntries[currentIndex];
-
-  if (!entry) {
-    elements.wordDetail.innerHTML = '<p class="empty-detail">Kein Wort ausgewaehlt</p>';
-    elements.detailPosition.textContent = "0 / 0";
-    elements.previousWord.disabled = true;
-    elements.nextWord.disabled = true;
-    return;
-  }
-
-  elements.wordDetail.innerHTML = `
-    <p class="detail-chapter">${chapterName(entry.chapter)}</p>
-    <h3 class="detail-word">${escapeHtml(entry.word)}</h3>
-    <div class="meaning-block">
-      <p class="meaning-label">English</p>
-      <p class="detail-meaning">${escapeHtml(entry.meaning)}</p>
-    </div>
-  `;
-  elements.detailPosition.textContent = `${currentIndex + 1} / ${visibleEntries.length}`;
-  elements.previousWord.disabled = currentIndex <= 0;
-  elements.nextWord.disabled = currentIndex >= visibleEntries.length - 1;
-}
 
 function render() {
   const visibleEntries = entriesForCurrentView();
@@ -198,7 +170,6 @@ function render() {
   renderHeader(visibleEntries);
   renderWordList(visibleEntries);
   renderAlphabetJump(visibleEntries);
-  renderDetail(visibleEntries);
 }
 
 function selectEntry(entryId, focus = false) {
@@ -209,16 +180,6 @@ function selectEntry(entryId, focus = false) {
     const selected = elements.wordList.querySelector(`[data-entry-id="${CSS.escape(entryId)}"]`);
     selected?.focus({ preventScroll: true });
     selected?.scrollIntoView({ block: "nearest" });
-  }
-}
-
-function changeSelectedWord(offset) {
-  const visibleEntries = entriesForCurrentView();
-  const currentIndex = visibleEntries.findIndex((entry) => entry.id === state.selectedId);
-  const nextEntry = visibleEntries[currentIndex + offset];
-
-  if (nextEntry) {
-    selectEntry(nextEntry.id, true);
   }
 }
 
@@ -311,8 +272,6 @@ elements.alphabetJump.addEventListener("click", (event) => {
   }
 });
 
-elements.previousWord.addEventListener("click", () => changeSelectedWord(-1));
-elements.nextWord.addEventListener("click", () => changeSelectedWord(1));
 
 elements.themeToggle.addEventListener("click", () => {
   applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
@@ -325,16 +284,6 @@ document.addEventListener("keydown", (event) => {
     event.preventDefault();
     elements.searchInput.focus();
     return;
-  }
-
-  if (!isTyping && event.key === "ArrowDown") {
-    event.preventDefault();
-    changeSelectedWord(1);
-  }
-
-  if (!isTyping && event.key === "ArrowUp") {
-    event.preventDefault();
-    changeSelectedWord(-1);
   }
 });
 
