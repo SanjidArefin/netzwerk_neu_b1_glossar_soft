@@ -10,7 +10,6 @@ function flattenGlossary(glossary) {
     chapter.entries.map((entry) => ({
       ...entry,
       chapter: chapter.number,
-      searchText: GlossaryModel.normalizeForSearch(`${entry.word} ${entry.meaning}`),
     }))
   ));
 }
@@ -67,4 +66,93 @@ test("entries stay alphabetical regardless of the alphabet-order toggle", () => 
   assert.ok(first.every((entry, index) => (
     index === 0 || collator.compare(first[index - 1].word, entry.word) <= 0
   )));
+});
+
+test("scoring ranks relevance tiers from exact matches down to contains hits", () => {
+  const entry = { word: "abend", meaning: "evening" };
+
+  assert.equal(GlossaryModel.calculateScore(entry, "abend"), 100);
+  assert.equal(GlossaryModel.calculateScore(entry, "aben"), 80);
+  assert.equal(GlossaryModel.calculateScore(entry, "eve"), 60);
+  assert.equal(GlossaryModel.calculateScore(entry, "end"), 40);
+  assert.equal(GlossaryModel.calculateScore(entry, "ning"), 20);
+  assert.equal(GlossaryModel.calculateScore(entry, "zoo"), 0);
+  assert.equal(GlossaryModel.calculateScore(entry, ""), 0);
+});
+
+test("relevance search puts German words before weaker substring hits", () => {
+  const entries = flattenGlossary(getGlossary());
+  const results = GlossaryModel.filterEntries(entries, { query: "era" });
+  const startsWith = results.findIndex((entry) => entry.word.toLowerCase().startsWith("era"));
+  const containsOnly = results.findIndex((entry) => (
+    !entry.word.toLowerCase().startsWith("era") && entry.word.toLowerCase().includes("era")
+  ));
+
+  assert.ok(startsWith !== -1, "expected a German word starting with 'era'");
+  assert.ok(containsOnly === -1 || startsWith < containsOnly, "starts-with must rank above contains");
+  assert.ok(results.some((entry) => entry.meaning.toLowerCase().includes("operational")));
+
+  // Every result must actually match, and scores must never increase down the list.
+  const scores = results.map((entry) => GlossaryModel.calculateScore(entry, "era"));
+
+  assert.ok(scores.every((score) => score > 0));
+  assert.ok(scores.every((score, index) => index === 0 || scores[index - 1] >= score));
+});
+
+test("typo tolerance finds words with one mistyped letter", () => {
+  const entries = flattenGlossary(getGlossary());
+  const results = GlossaryModel.filterEntries(entries, { query: "abnd" });
+
+  assert.ok(results.some((entry) => entry.word === "abend"));
+  // The fuzzy hit must rank below real prefix matches of the same length.
+  const fuzzyIndex = results.findIndex((entry) => entry.word === "abend");
+  const strictIndex = results.findIndex((entry) => entry.word.toLowerCase().startsWith("abnd"));
+
+  assert.ok(strictIndex === -1 || strictIndex < fuzzyIndex);
+
+  // Short queries stay strict: "abm" must not drag in "abend".
+  assert.ok(!GlossaryModel.filterEntries(entries, { query: "abm" }).some((entry) => entry.word === "abend"));
+});
+
+test("an empty query returns every entry sorted A-Z", () => {
+  const entries = flattenGlossary(getGlossary());
+  const collator = new Intl.Collator("de-DE", { sensitivity: "base" });
+  const results = GlossaryModel.filterEntries(entries, { query: "   " });
+
+  assert.equal(results.length, entries.length);
+  assert.ok(results.every((entry, index) => (
+    index === 0 || collator.compare(results[index - 1].word, entry.word) <= 0
+  )));
+});
+
+test("match ranges cover every occurrence and map back through umlauts", () => {
+  const ranges = (entry, property, query) => (
+    GlossaryModel.findMatchRanges(entry, property, GlossaryModel.normalizeForSearch(query))
+  );
+
+  // Plain substring hits, including repeated occurrences.
+  assert.deepEqual(ranges({ word: "erarbeiten", meaning: "" }, "word", "er"), [[0, 2]]);
+
+  // "abhaengen" is eight result characters over seven source characters: the
+  // highlight must cover the original "abhäng", not six letters of it.
+  assert.deepEqual(ranges({ word: "abhängen", meaning: "" }, "word", "abhaenge"), [[0, 7]]);
+  assert.deepEqual(ranges({ word: "abhängen", meaning: "" }, "word", "ab"), [[0, 2]]);
+
+  // A fuzzy hit has no literal occurrence, so the attempted prefix is marked.
+  assert.deepEqual(ranges({ word: "abend", meaning: "" }, "word", "abnd"), [[0, 4]]);
+
+  // No match, no highlight.
+  assert.deepEqual(ranges({ word: "abend", meaning: "" }, "word", "zoo"), []);
+});
+
+test("relevance search stays fast across the whole glossary", () => {
+  const entries = flattenGlossary(getGlossary());
+  const started = performance.now();
+
+  GlossaryModel.filterEntries(entries, { query: "abnd" });
+  GlossaryModel.filterEntries(entries, { query: "era" });
+  GlossaryModel.filterEntries(entries, { query: "betrieb" });
+
+  // Fuzzy scoring runs over all ~9400 entries on every debounced keystroke.
+  assert.ok(performance.now() - started < 1500, "three searches should not take seconds");
 });

@@ -20,6 +20,7 @@ const elements = {
   pageTitle: document.querySelector("#page-title"),
   searchInput: document.querySelector("#search-input"),
   clearSearch: document.querySelector("#clear-search"),
+  umlautToolbar: document.querySelector(".umlaut-toolbar"),
   resultCount: document.querySelector("#result-count"),
   wordListPanel: document.querySelector(".word-list-panel"),
   listHeader: document.querySelector(".list-header"),
@@ -88,6 +89,66 @@ function chapterName(chapter) {
   return `Chapter ${chapter}`;
 }
 
+// Trailing-edge debounce. Exposes cancel() so an immediate action (clearing the
+// search, switching chapters) can drop a render that is still waiting to fire.
+function debounce(func, wait) {
+  let timeout;
+
+  const debounced = (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      timeout = undefined;
+      func(...args);
+    }, wait);
+  };
+
+  debounced.cancel = () => clearTimeout(timeout);
+
+  return debounced;
+}
+
+// Wraps the ranges reported by the model in <mark>. The text is escaped piece by
+// piece, so no unescaped query ever reaches innerHTML.
+function highlightField(value, ranges) {
+  if (!ranges.length) {
+    return escapeHtml(value);
+  }
+
+  const merged = [];
+
+  for (const range of [...ranges].sort((left, right) => left[0] - right[0])) {
+    const last = merged[merged.length - 1];
+
+    if (last && range[0] <= last[1]) {
+      last[1] = Math.max(last[1], range[1]);
+    } else {
+      merged.push([range[0], range[1]]);
+    }
+  }
+
+  let html = "";
+  let cursor = 0;
+
+  for (const [start, end] of merged) {
+    // Merging already guarantees ascending, non-overlapping ranges; this only
+    // guards against a zero-length one. Note that start === cursor === 0 is a
+    // legitimate match at the very beginning of the word, so it must not skip.
+    if (end <= cursor) {
+      continue;
+    }
+
+    html += escapeHtml(value.slice(cursor, start));
+    html += `<mark>${escapeHtml(value.slice(start, end))}</mark>`;
+    cursor = end;
+  }
+
+  return html + escapeHtml(value.slice(cursor));
+}
+
+function normalizedQuery() {
+  return GlossaryModel.normalizeForSearch(state.query.trim());
+}
+
 function entriesForCurrentView() {
   return GlossaryModel.filterEntries(state.entries, {
     chapter: state.chapter,
@@ -143,16 +204,21 @@ function renderWordList(visibleEntries) {
     return;
   }
 
+  const query = normalizedQuery();
+  // Relevance order is not alphabetical, so the A–Z section headings only make
+  // sense when the full list is shown.
+  const showHeadings = !query;
   let lastLetter = "";
   const rows = [];
 
   for (const entry of visibleEntries) {
     const letter = entry.word.slice(0, 1).toLocaleUpperCase("de-DE");
 
-    if (letter !== lastLetter) {
+    if (showHeadings && letter !== lastLetter) {
       rows.push(`<div class="letter-heading" data-letter="${escapeHtml(letter)}" aria-hidden="true">${escapeHtml(letter)}</div>`);
-      lastLetter = letter;
     }
+
+    lastLetter = letter;
 
     const isChecked = state.batchSelectedIds.includes(entry.id);
     const checkbox = state.isBatchDeleting
@@ -165,8 +231,8 @@ function renderWordList(visibleEntries) {
         role="option" tabindex="0" aria-selected="${entry.id === state.selectedId}"
         data-entry-id="${escapeHtml(entry.id)}">
         ${checkbox}
-        <span class="word-name">${escapeHtml(entry.word)}</span>
-        <span class="word-meaning">${escapeHtml(entry.meaning)}</span>
+        <span class="word-name">${highlightField(entry.word, query ? GlossaryModel.findMatchRanges(entry, "word", query) : [])}</span>
+        <span class="word-meaning">${highlightField(entry.meaning, query ? GlossaryModel.findMatchRanges(entry, "meaning", query) : [])}</span>
         <span class="chapter-tag">${chapterName(entry.chapter)}</span>
       </div>
     `);
@@ -262,7 +328,6 @@ function applyGlossary(glossary) {
       ...entry,
       id: `${chapter.number}-${entry.word}`,
       chapter: chapter.number,
-      searchText: GlossaryModel.normalizeForSearch(`${entry.word} ${entry.meaning}`),
     }))
   ));
 
@@ -292,14 +357,52 @@ elements.chapterTabs.addEventListener("click", (event) => {
 
 elements.allChapterButton.addEventListener("click", () => selectChapter("all"));
 
-elements.searchInput.addEventListener("input", (event) => {
-  state.query = event.target.value;
+function runSearch(value) {
+  state.query = value;
   state.selectedId = null;
   render();
   elements.wordListPanel.scrollTop = 0;
+}
+
+// Fuzzy scoring runs over ~9000 entries, so typing must not re-render on every
+// keystroke; the list catches up 250ms after the user pauses.
+const applySearchQuery = debounce(runSearch, 250);
+
+elements.searchInput.addEventListener("input", (event) => {
+  applySearchQuery(event.target.value);
+});
+
+// The toolbar lives inside the search <label>, so a click would otherwise move
+// the caret into the label's own text; preventDefault keeps focus on the input.
+elements.umlautToolbar.addEventListener("click", (event) => {
+  const button = event.target.closest(".umlaut-btn");
+
+  if (!button) {
+    return;
+  }
+
+  event.preventDefault();
+
+  const input = elements.searchInput;
+  const character = button.dataset.char;
+  const start = input.selectionStart ?? input.value.length;
+  const end = input.selectionEnd ?? input.value.length;
+
+  input.value = `${input.value.slice(0, start)}${character}${input.value.slice(end)}`;
+
+  const caret = start + character.length;
+
+  input.setSelectionRange(caret, caret);
+  input.focus();
+
+  // A button press is deliberate, so render straight away instead of waiting
+  // for the typing debounce — and drop anything still queued from keystrokes.
+  applySearchQuery.cancel();
+  runSearch(input.value);
 });
 
 elements.clearSearch.addEventListener("click", () => {
+  applySearchQuery.cancel();
   elements.searchInput.value = "";
   state.query = "";
   state.selectedId = null;
@@ -561,6 +664,7 @@ elements.wordForm.addEventListener("submit", async (event) => {
     closeWordModal();
 
     // Jump to the chapter that received the word so the change is visible.
+    applySearchQuery.cancel();
     state.chapter = chapter;
     state.query = "";
     elements.searchInput.value = "";
