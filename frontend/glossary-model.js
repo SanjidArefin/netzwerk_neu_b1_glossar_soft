@@ -120,7 +120,19 @@
 
     return entry[cacheKey];
   }
+  // Warms the memo above for every entry at load time, so the first search (and
+  // every later one) reads precomputed fields instead of normalising ~19000
+  // strings while the user waits. Safe to call again after any edit — entries
+  // are rebuilt on each load, and stale non-enumerable fields are harmless
+  // because scoring only ever reads them through normalizedField().
+  function prepareEntries(entries) {
+    for (const entry of entries) {
+      normalizedField(entry, "word");
+      normalizedField(entry, "meaning");
+    }
 
+    return entries;
+  }
   // Relevance tiers. Higher wins; 0 means "not a match" and is filtered out.
   const SCORES = {
     exactWord: 100,
@@ -239,6 +251,7 @@
     findMatchRanges,
     levenshteinDistance,
     normalizeForSearch,
+    prepareEntries,
     sortEntries,
   };
 

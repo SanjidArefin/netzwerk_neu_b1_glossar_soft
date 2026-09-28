@@ -95,7 +95,10 @@ button {
   height: 100dvh;
   min-height: 100vh;
   background: var(--surface);
-  transition: grid-template-columns 0.3s ease;
+
+  /* No grid-template-columns transition: with ~9400 rows the browser must
+     relayout the whole table on every animation frame of a collapse/expand.
+     The toggle is instant instead. */
 }
 
 /* --- Collapsed sidebar states --- */

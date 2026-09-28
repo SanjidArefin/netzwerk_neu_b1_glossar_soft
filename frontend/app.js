@@ -1,5 +1,6 @@
 const state = {
   entries: [],
+  sortedEntries: [],
   chapters: [],
   chapter: "all",
   query: "",
@@ -7,6 +8,11 @@ const state = {
   isBatchDeleting: false,
   batchSelectedIds: [],
   alphabetOrder: "asc",
+  // View cache: the filtered/scored list is rebuilt only when the query or
+  // chapter changes — never when clicking a row or toggling a checkbox.
+  cachedResults: null,
+  cachedQuery: null,
+  cachedChapter: null,
 };
 
 const elements = {
@@ -150,10 +156,35 @@ function normalizedQuery() {
 }
 
 function entriesForCurrentView() {
-  return GlossaryModel.filterEntries(state.entries, {
-    chapter: state.chapter,
-    query: state.query,
-  });
+  if (state.cachedResults
+    && state.cachedQuery === state.query
+    && state.cachedChapter === state.chapter) {
+    return state.cachedResults;
+  }
+
+  // Fast path: an empty query skips scoring entirely. applyGlossary() keeps a
+  // pre-sorted copy of every entry, and filtering a sorted list preserves the
+  // order, so no per-render sort of ~9400 entries is ever needed.
+  const results = state.query.trim()
+    ? GlossaryModel.filterEntries(state.entries, {
+      chapter: state.chapter,
+      query: state.query,
+    })
+    : state.chapter === "all"
+      ? state.sortedEntries
+      : state.sortedEntries.filter((entry) => entry.chapter === state.chapter);
+
+  state.cachedResults = results;
+  state.cachedQuery = state.query;
+  state.cachedChapter = state.chapter;
+
+  return results;
+}
+
+function invalidateViewCache() {
+  state.cachedResults = null;
+  state.cachedQuery = null;
+  state.cachedChapter = null;
 }
 
 function renderChapterTabs() {
@@ -304,13 +335,33 @@ function render() {
 }
 
 function selectEntry(entryId, focus = false) {
-  state.selectedId = entryId;
-  render();
+  // Only two rows are affected by a selection change, so update them in place
+  // instead of rebuilding 9000+ rows through render().
+  const previousId = state.selectedId;
 
-  if (focus) {
-    const selected = elements.wordList.querySelector(`[data-entry-id="${CSS.escape(entryId)}"]`);
-    selected?.focus({ preventScroll: true });
-    selected?.scrollIntoView({ block: "nearest" });
+  state.selectedId = entryId;
+
+  if (previousId && previousId !== entryId) {
+    const previousRow = elements.wordList.querySelector(`[data-entry-id="${CSS.escape(previousId)}"]`);
+
+    if (previousRow) {
+      previousRow.classList.remove("is-selected");
+      previousRow.setAttribute("aria-selected", "false");
+    }
+  }
+
+  const row = elements.wordList.querySelector(`[data-entry-id="${CSS.escape(entryId)}"]`);
+
+  if (row) {
+    row.classList.add("is-selected");
+    row.setAttribute("aria-selected", "true");
+  }
+
+  renderActions();
+
+  if (focus && row) {
+    row.focus({ preventScroll: true });
+    row.scrollIntoView({ block: "nearest" });
   }
 }
 
@@ -330,6 +381,13 @@ function applyGlossary(glossary) {
       chapter: chapter.number,
     }))
   ));
+
+  // Normalise every entry once (so scoring never calls normalizeForSearch) and
+  // keep a pre-sorted copy for the no-query fast path. Both are rebuilt here,
+  // which is the only place entries are (re)loaded.
+  GlossaryModel.prepareEntries(state.entries);
+  state.sortedEntries = GlossaryModel.sortEntries(state.entries);
+  invalidateViewCache();
 
   elements.loadStatus.textContent = `${glossary.totalEntries} words`;
 }
@@ -499,7 +557,11 @@ function renderSortToggle() {
 
 elements.sortToggle.addEventListener("click", () => {
   state.alphabetOrder = state.alphabetOrder === "asc" ? "desc" : "asc";
-  render();
+
+  // Only the letter buttons flip order — the word list always stays A-Z — so
+  // avoid rebuilding 9000+ rows for a 29-button change.
+  renderAlphabetJump(entriesForCurrentView());
+  renderSortToggle();
 });
 
 // --- Copying -------------------------------------------------------------
