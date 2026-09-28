@@ -4,7 +4,9 @@ An offline Windows glossary for the Netzwerk neu B1 vocabulary.
 
 ## Download
 
-[Download B1 Glossar for Windows](https://github.com/SanjidArefin/netzwerk_neu_b1_glossar_soft/releases/download/v1.1.2/B1.Glossar.Setup.1.1.2.exe)
+[Download B1 Glossar for Windows](https://github.com/SanjidArefin/netzwerk_neu_b1_glossar_soft/releases/latest/download/B1-Glossar-Setup.exe)
+
+Requires Windows 10 or later.
 
 ## Development
 
