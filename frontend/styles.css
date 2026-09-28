@@ -89,12 +89,105 @@ button {
 
 .app-shell {
   display: grid;
-  grid-template-columns: clamp(218px, 16vw, 260px) minmax(0, 1fr);
+  grid-template-columns: clamp(218px, 16vw, 260px) minmax(0, 1fr) 60px;
   width: 100%;
   height: 100vh;
   height: 100dvh;
   min-height: 100vh;
   background: var(--surface);
+  transition: grid-template-columns 0.3s ease;
+}
+
+/* --- Collapsed sidebar states --- */
+
+/* Left (Kapitel) sidebar collapsed. The right alphabet rail is a fixed 60px
+   column and has no collapsed state of its own. */
+.app-shell.sidebar-collapsed {
+  grid-template-columns: 60px minmax(0, 1fr) 60px;
+}
+
+/* The chapter navigation stays visible in the 60px rail, so only the text
+   blocks around it are dropped. */
+.app-shell.sidebar-collapsed .brand-text,
+.app-shell.sidebar-collapsed .nav-heading,
+.app-shell.sidebar-collapsed .sidebar-footer {
+  display: none;
+}
+
+.app-shell.sidebar-collapsed .brand {
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+/* Collapsed chapter navigation: a tight vertical stack of number buttons. */
+.app-shell.sidebar-collapsed .chapter-nav {
+  display: flex;
+  padding: 10px 0;
+  gap: 4px;
+}
+
+.app-shell.sidebar-collapsed .chapter-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0;
+  min-height: auto;
+  border-left: 0;
+  border-bottom: 3px solid transparent; /* Move indicator to bottom */
+  background: transparent;
+  gap: 2px;
+}
+
+.app-shell.sidebar-collapsed .chapter-tab.is-active {
+  border-bottom-color: var(--green);
+  border-left-color: transparent;
+  background: var(--green-soft);
+}
+
+/* Hide the full "Chapter X" text */
+.app-shell.sidebar-collapsed .chapter-tab > span:first-child {
+  display: none;
+}
+
+/* Use the data-chapter attribute to display the chapter number as an icon */
+.app-shell.sidebar-collapsed .chapter-tab::before {
+  content: attr(data-chapter);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--blue);
+}
+
+/* Special icon for "All Chapters" */
+.app-shell.sidebar-collapsed .chapter-tab[data-chapter="all"]::before {
+  content: "\2605"; /* A star to represent 'All' */
+  font-size: 16px;
+}
+
+.app-shell.sidebar-collapsed .chapter-tab.is-active::before {
+  color: var(--green);
+}
+
+/* In the collapsed state, hide the word count entirely so only the
+   chapter number (or star) remains. */
+.app-shell.sidebar-collapsed .tab-count {
+  display: none;
+}
+
+/* Icon rail: the action buttons keep working, they just lose their labels. */
+.app-shell.sidebar-collapsed .sidebar-actions {
+  padding: 14px 8px;
+}
+
+.app-shell.sidebar-collapsed .btn-text {
+  display: none;
+}
+
+.app-shell.sidebar-collapsed .action-btn {
+  padding: 8px 0;
+  gap: 0;
 }
 
 .sidebar {
@@ -140,6 +233,43 @@ button {
   margin: 2px 0 0;
   font-size: 22px;
   line-height: 1.1;
+}
+
+.brand-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.toggle-btn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-muted);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 18px;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.toggle-btn:hover {
+  background: var(--green-soft);
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.toggle-btn:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.toggle-icon {
+  line-height: 1;
+  margin-top: -2px;
 }
 
 .chapter-nav {
@@ -206,6 +336,156 @@ button {
   border-top: 1px solid var(--line);
   color: var(--muted);
   font-size: 12px;
+}
+
+.sidebar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 12px;
+  border-top: 1px solid var(--line);
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface-muted);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.action-btn:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.action-btn:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.action-btn.primary {
+  border-color: var(--green);
+  background: var(--green);
+  color: var(--on-accent);
+}
+
+.action-btn.primary:hover {
+  border-color: var(--green-border);
+  background: var(--green-deep);
+  color: var(--on-accent);
+}
+
+.action-btn.danger {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.action-btn.danger:hover {
+  background: var(--red);
+  color: var(--on-accent);
+}
+
+.action-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.modal-content {
+  width: min(420px, 100%);
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.modal-content h3 {
+  margin: 0 0 18px;
+  font-size: 19px;
+}
+
+.modal-content label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.modal-content input {
+  width: 100%;
+  min-height: 42px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--input-surface);
+  color: var(--ink);
+}
+
+.modal-content input:focus {
+  border-color: var(--green);
+  outline: 0;
+  box-shadow: 0 0 0 3px var(--green-focus);
+}
+
+.modal-content input:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.modal-error {
+  margin: 0 0 14px;
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.modal-actions .action-btn {
+  width: auto;
+  min-width: 110px;
 }
 
 .footer-dot {
@@ -389,34 +669,106 @@ button {
   min-height: 1px;
 }
 
+/* Batch-delete mode inserts a checkbox column ahead of the table columns, so
+   the sticky header is offset to stay aligned with the row content. */
+.word-list-panel.is-batch {
+  --table-columns: 28px minmax(148px, 0.9fr) minmax(200px, 1.25fr) minmax(104px, 0.72fr);
+}
+
+.word-list-panel.is-batch .list-header {
+  padding-left: 68px;
+}
+
+.select-checkbox {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--green);
+  cursor: pointer;
+  justify-self: start;
+}
+
+/* Fixed 60px rail: sort button on top, count, then the vertical A-Z list. */
 .alphabet-jump {
   display: flex;
-  position: sticky;
-  top: 47px;
-  z-index: 1;
-  min-height: 43px;
+  flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 6px 32px;
-  overflow-x: auto;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
-  isolation: isolate;
-  scrollbar-width: thin;
+  height: 100dvh;
+  padding: 16px 0;
+  gap: 10px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-left: 1px solid var(--line);
+  background: var(--sidebar);
+  z-index: 2;
+  scrollbar-width: none;
+}
+
+.alphabet-jump::-webkit-scrollbar {
+  display: none;
+}
+
+.alphabet-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.sort-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-muted);
+  color: var(--blue);
+  font-size: 20px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.sort-icon:hover {
+  background: var(--green-soft);
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.sort-icon:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.alphabet-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.alphabet-heading {
+  display: flex;
+  justify-content: center;
+  padding: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .alphabet-button {
   display: grid;
-  width: 27px;
-  height: 27px;
-  flex: 0 0 27px;
+  width: 40px;
+  min-height: 32px;
+  flex: 0 0 auto;
   place-items: center;
+  padding: 4px 0;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: 6px;
   background: transparent;
   color: var(--blue);
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -458,6 +810,11 @@ button {
   background: transparent;
   cursor: pointer;
   text-align: left;
+
+  /* Rows are selectable so part of a word or meaning can be highlighted and
+     copied with the browser's own context menu. */
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .word-row:hover {
@@ -466,6 +823,12 @@ button {
 
 .word-row.is-selected {
   background: var(--row-selected);
+  box-shadow: inset 3px 0 0 var(--green);
+}
+
+/* Transient feedback after a row is copied to the clipboard. */
+.word-row.is-copied {
+  background: var(--green-soft);
   box-shadow: inset 3px 0 0 var(--green);
 }
 
@@ -513,7 +876,13 @@ button {
 
 @media (max-width: 1050px) {
   .app-shell {
-    grid-template-columns: 208px minmax(0, 1fr);
+    grid-template-columns: 208px minmax(0, 1fr) 60px;
+  }
+
+  /* Static rail width is more specific than the clamp(), so the collapsed
+     left width must be re-declared here or this rule would override it. */
+  .app-shell.sidebar-collapsed {
+    grid-template-columns: 60px minmax(0, 1fr) 60px;
   }
 
   .workspace-header {
@@ -522,7 +891,6 @@ button {
 
   .workspace-header,
   .list-header,
-  .alphabet-jump,
   .word-row,
   .letter-heading {
     padding-right: 22px;
@@ -539,15 +907,141 @@ button {
 
   .app-shell {
     display: flex;
-    height: auto;
-    min-height: 100vh;
+    height: 100vh;
     flex-direction: column;
     box-shadow: none;
   }
 
+  /* The layout is a single column here, so collapse toggles are hidden and
+     any persisted collapsed state is neutralised. */
+  .toggle-btn {
+    display: none;
+  }
+
+  .app-shell.sidebar-collapsed .brand-text,
+  .app-shell.sidebar-collapsed .nav-heading {
+    display: none;
+  }
+
+  /* Neutralise the rail: chapters render as the normal horizontal bar. */
+  .app-shell.sidebar-collapsed .chapter-nav {
+    display: flex;
+    flex-direction: row;
+    padding: 0;
+    gap: 0;
+  }
+
+  /* Single column, so the icon-rail treatment must not apply here: the tabs
+     must look exactly like the mobile bar's own rules further down. */
+  .app-shell.sidebar-collapsed .chapter-tab {
+    display: flex;
+    width: max-content;
+    min-width: 102px;
+    min-height: 38px;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 13px;
+    border-left: 0;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+  }
+
+  .app-shell.sidebar-collapsed .chapter-tab.is-active {
+    border-left: 0;
+    border-bottom-color: var(--green);
+  }
+
+  .app-shell.sidebar-collapsed .chapter-tab::before,
+  .app-shell.sidebar-collapsed .chapter-tab[data-chapter="all"]::before {
+    content: none;
+  }
+
+  .app-shell.sidebar-collapsed .chapter-tab > span:first-child {
+    display: block;
+  }
+
+  .app-shell.sidebar-collapsed .tab-count {
+    display: block;
+    min-width: 30px;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: right;
+  }
+
+  .app-shell.sidebar-collapsed .btn-text {
+    display: inline-flex;
+  }
+
+  .app-shell.sidebar-collapsed .action-btn {
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-actions {
+    padding: 14px 12px;
+  }
+
+  .app-shell.sidebar-collapsed .brand {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 15px 18px;
+  }
+
   .sidebar {
-    min-height: 0;
+    order: 1;
     border-right: 0;
+  }
+
+  .workspace {
+    order: 2;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .alphabet-jump {
+    flex-direction: row;
+    align-items: center;
+    height: auto;
+    width: 100%;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 8px 16px;
+    order: 3;
+    justify-content: center;
+  }
+
+  .alphabet-buttons {
+    flex-direction: row;
+    gap: 4px;
+  }
+
+  .alphabet-heading {
+    display: none;
+  }
+
+  /* The sort toggle is a functional control, so it stays in the bottom bar. */
+  .alphabet-header {
+    flex: 0 0 auto;
+  }
+
+  .alphabet-button {
+    width: 27px;
+    min-height: 27px;
+    flex: 0 0 27px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 5px;
+  }
+
+  .alphabet-button:hover:not(:disabled),
+  .alphabet-button:focus-visible {
+    border-color: var(--green);
+    border-left-color: var(--green);
   }
 
   .brand {
@@ -592,10 +1086,6 @@ button {
     border-left-color: transparent;
   }
 
-  .workspace {
-    min-height: auto;
-  }
-
   .workspace-header {
     display: flex;
     min-height: 112px;
@@ -616,10 +1106,14 @@ button {
   }
 
   .list-header,
-  .alphabet-jump,
   .word-row,
   .letter-heading {
     padding: 0 18px;
+  }
+
+  /* Checkbox column (28px) plus the reduced row padding. */
+  .word-list-panel.is-batch .list-header {
+    padding-left: 46px;
   }
 }
 

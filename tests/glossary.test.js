@@ -55,3 +55,16 @@ test("chapter filtering and alphabetical sorting are stable", () => {
     index === 0 || collator.compare(chapterThree[index - 1].word, entry.word) <= 0
   )));
 });
+
+test("entries stay alphabetical regardless of the alphabet-order toggle", () => {
+  const entries = flattenGlossary(getGlossary());
+  const collator = new Intl.Collator("de-DE", { sensitivity: "base" });
+  const first = GlossaryModel.filterEntries(entries, { chapter: 1 });
+  const second = GlossaryModel.filterEntries(entries, { chapter: 1, sortOrder: "desc" });
+
+  // sortOrder is no longer part of the model API: passing it must be ignored.
+  assert.deepEqual(second.map((entry) => entry.word), first.map((entry) => entry.word));
+  assert.ok(first.every((entry, index) => (
+    index === 0 || collator.compare(first[index - 1].word, entry.word) <= 0
+  )));
+});

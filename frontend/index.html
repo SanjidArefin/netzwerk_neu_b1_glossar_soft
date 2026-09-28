@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#000080">
-    <title>B1 Glossar</title>
+    <title>B1 Glossary</title>
     <script>
       try {
         document.documentElement.dataset.theme = localStorage.getItem("b1-glossar-theme") || "blue";
@@ -18,53 +18,79 @@
     <div class="app-shell">
       <aside class="sidebar">
         <div class="brand">
+          <button id="toggle-left-sidebar" class="toggle-btn" type="button" aria-label="Toggle chapter sidebar" title="Toggle chapter sidebar" aria-expanded="true">
+            <span class="toggle-icon" aria-hidden="true">&#9776;</span>
+          </button>
           <div class="brand-mark" aria-hidden="true">B1</div>
-          <div>
-            <p class="brand-kicker">Netzwerk neu</p>
-            <h1>Glossar</h1>
+          <div class="brand-text">
+            <p class="brand-kicker">New Network</p>
+            <h1>Glossary</h1>
           </div>
         </div>
 
-        <nav class="chapter-nav" aria-label="Kapitel">
+        <nav class="chapter-nav" aria-label="Chapters">
           <div class="nav-heading">
-            <span>Kapitel</span>
+            <span>Chapters</span>
             <span id="total-count">...</span>
           </div>
-          <button class="chapter-tab is-active" type="button" data-chapter="all" aria-pressed="true">
-            <span>Alle Kapitel</span>
+          <button class="chapter-tab is-active" type="button" data-chapter="all" aria-pressed="true" title="All Chapters">
+            <span>All Chapters</span>
             <span class="tab-count" id="all-count">...</span>
           </button>
           <div id="chapter-tabs"></div>
         </nav>
 
+        <div class="sidebar-actions">
+          <button id="add-word-btn" class="action-btn primary" type="button" title="Add Word">
+            <span class="btn-icon">+</span>
+            <span class="btn-text">Add Word</span>
+          </button>
+          <button id="edit-word-btn" class="action-btn" type="button" disabled title="Edit Word">
+            <span class="btn-icon">&#9998;</span>
+            <span class="btn-text">Edit Word</span>
+          </button>
+          <button id="delete-word-btn" class="action-btn danger" type="button" title="Remove Word">
+            <span class="btn-icon">&minus;</span>
+            <span class="btn-text">Remove Word</span>
+          </button>
+          <button id="batch-delete-btn" class="action-btn danger hidden" type="button" title="Delete Selected">
+            <span class="btn-icon">&#10003;</span>
+            <span class="btn-text">Delete Selected (0)</span>
+          </button>
+          <button id="cancel-batch-btn" class="action-btn hidden" type="button" title="Cancel">
+            <span class="btn-icon">&#10005;</span>
+            <span class="btn-text">Cancel</span>
+          </button>
+        </div>
+
         <div class="sidebar-footer">
           <span class="footer-dot" aria-hidden="true"></span>
-          <span id="load-status">Glossar wird geladen</span>
+          <span id="load-status">Loading glossary...</span>
         </div>
       </aside>
 
       <main class="workspace">
         <header class="workspace-header">
           <div>
-            <p class="section-kicker" id="chapter-label">Alle Kapitel</p>
-            <h2 id="page-title">Wortschatz</h2>
+            <p class="section-kicker" id="chapter-label">All Chapters</p>
+            <h2 id="page-title">Vocabulary</h2>
           </div>
           <div class="header-actions">
             <label class="search-field" for="search-input">
               <span class="search-symbol" aria-hidden="true">&#8981;</span>
-              <span class="sr-only">Wort oder Bedeutung suchen</span>
+              <span class="sr-only">Search word or meaning</span>
               <input
                 id="search-input"
                 type="search"
                 autocomplete="off"
                 spellcheck="false"
-                placeholder="Wort oder Bedeutung suchen"
+                placeholder="Search word or meaning"
               >
-              <button id="clear-search" class="clear-search" type="button" title="Suche leeren" aria-label="Suche leeren" hidden>
+              <button id="clear-search" class="clear-search" type="button" title="Clear search" aria-label="Clear search" hidden>
                 &times;
               </button>
             </label>
-            <button id="theme-toggle" class="theme-toggle" type="button" title="Blauer Modus aktivieren" aria-label="Blauer Modus aktivieren" aria-pressed="false">
+            <button id="theme-toggle" class="theme-toggle" type="button" title="Enable light mode" aria-label="Enable light mode" aria-pressed="false">
               <span class="theme-toggle-icon" aria-hidden="true">&#9790;</span>
             </button>
           </div>
@@ -73,19 +99,48 @@
         <section class="word-list-panel" aria-labelledby="page-title">
           <header class="list-header">
             <div class="list-label list-label-word">
-              <span>Deutsch</span>
+              <span>German</span>
               <span class="list-summary">
-                <span id="result-count">0 Eintraege</span>
+                <span id="result-count">0 entries</span>
                 <span class="sort-note">A-Z</span>
               </span>
             </div>
             <span class="list-label">English</span>
-            <span class="list-label list-label-chapter">Kapitel</span>
+            <span class="list-label list-label-chapter">Chapter</span>
           </header>
-          <nav id="alphabet-jump" class="alphabet-jump" aria-label="Zu Buchstabe springen"></nav>
-          <div id="word-list" class="word-list" role="listbox" aria-label="Glossareintraege"></div>
+          <div id="word-list" class="word-list" role="listbox" aria-label="Glossary entries"></div>
         </section>
       </main>
+
+      <nav id="alphabet-jump" class="alphabet-jump" aria-label="Jump to letter">
+        <div class="alphabet-header">
+          <button id="sort-toggle" class="sort-icon" type="button" aria-label="Toggle sort order" title="Sorted A to Z">&#8645;</button>
+        </div>
+        <div class="alphabet-heading">
+          <span id="alphabet-count">0</span>
+        </div>
+        <div id="alphabet-buttons" class="alphabet-buttons"></div>
+      </nav>
+
+      <div id="word-modal" class="modal-overlay hidden">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="word-modal-title">
+          <h3 id="word-modal-title">Add New Word</h3>
+          <form id="word-form">
+            <input type="hidden" id="modal-mode" value="add">
+            <label for="modal-chapter">Chapter</label>
+            <input type="number" id="modal-chapter" required min="1" max="12">
+            <label for="modal-word">Word</label>
+            <input type="text" id="modal-word" required autocomplete="off" spellcheck="false">
+            <label for="modal-meaning">Meaning</label>
+            <input type="text" id="modal-meaning" required autocomplete="off" spellcheck="false">
+            <p id="modal-error" class="modal-error" role="alert" hidden></p>
+            <div class="modal-actions">
+              <button type="button" id="cancel-word-btn" class="action-btn">Cancel</button>
+              <button type="submit" class="action-btn primary">Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
     <script src="./glossary-model.js"></script>
     <script src="./app.js"></script>
   </body>

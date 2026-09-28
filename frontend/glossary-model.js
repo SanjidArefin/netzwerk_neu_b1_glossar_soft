@@ -8,6 +8,8 @@
       .replaceAll("\u00df", "ss");
   }
 
+  // The word list is always alphabetical (A-Z). The alphabet-order toggle in the
+  // right rail only reorders the letter buttons, never these entries.
   function sortEntries(entries) {
     return [...entries].sort((left, right) => (
       left.word.localeCompare(right.word, "de-DE", { sensitivity: "base" })

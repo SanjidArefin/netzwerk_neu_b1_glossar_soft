@@ -2,6 +2,9 @@ node_modules/
 release/
 dist/
 
+# Local handoff notes (not part of the app)
+CONTEXT.md
+
 # Local system files
 .DS_Store
 Thumbs.db
