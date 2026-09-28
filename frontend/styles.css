@@ -867,6 +867,11 @@ button {
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  /* The overflow above is what produces the ellipsis, but it also clips the
+     search-match underline (see .word-row mark). This padding grows the clip
+     box just enough for the 3px underline offset to stay visible. */
+  padding-bottom: 4px;
 }
 
 .word-meaning {
@@ -874,14 +879,17 @@ button {
   color: var(--word-meaning);
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding-bottom: 4px;
 }
 
-/* Yellow highlight around the matched part of a word or meaning. */
+/* Subtle, theme-matching highlight for search matches. */
 .word-row mark {
-  background-color: var(--yellow);
-  color: var(--on-accent);
-  border-radius: 2px;
-  padding: 0 2px;
+  background-color: transparent;
+  color: var(--green);
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-color: var(--green);
+  text-underline-offset: 3px;
 }
 
 .chapter-tag {
